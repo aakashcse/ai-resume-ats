@@ -1,5 +1,8 @@
 # 📄 Resume ATS Scorer
 
+**🔗 Live demo:** https://ai-resume-ats-1-m2wu.onrender.com  
+_Sign in with Google to try it. Hosted on Render's free plan, so the first load after a quiet period can take up to a minute._
+
 A web app that scores a resume the way an **Applicant Tracking System (ATS)** might. It also measures how well the resume matches a specific job description.
 
 Upload a PDF or DOCX resume and, optionally, paste a job description. You get:
