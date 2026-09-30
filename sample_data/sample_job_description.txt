@@ -1,0 +1,17 @@
+Software Developer Intern (Full Stack)
+
+We are looking for a motivated Software Developer Intern to join our product team.
+
+Responsibilities:
+- Build and maintain web applications using React and Node.js
+- Develop REST APIs using Python (FastAPI or Django)
+- Work with MongoDB and PostgreSQL databases
+- Write clean, tested code and use Git for version control
+- Deploy applications using Docker on AWS
+
+Requirements:
+- Strong knowledge of JavaScript, HTML, CSS and Python
+- Familiarity with data structures and algorithms
+- Experience with Git and GitHub
+- Basic understanding of machine learning is a plus
+- Good communication skills and ability to work in an Agile team
