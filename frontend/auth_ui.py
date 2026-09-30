@@ -100,11 +100,44 @@ def show_login_page() -> None:
 
 
 def register_user_with_backend(backend_url: str) -> None:
-    """Call GET /auth/me once per session. The backend verifies the token and
-    creates the user on their first sign-in (sign up)."""
+    """Register/load the user once per session. The first sign-in creates the
+    account (sign up). In API mode this calls GET /auth/me, where the backend
+    verifies the token; in standalone mode it writes to the user store directly."""
     if "profile" in st.session_state:
         return
 
+    if not backend_url:
+        profile = _register_in_process()
+    else:
+        profile = _register_via_api(backend_url)
+
+    st.session_state["profile"] = profile
+    first_name = (profile.get("name") or "there").split()[0]
+    if profile["is_new_user"]:
+        st.toast(f"Welcome, {first_name}! Your account has been created.", icon="🎉")
+    else:
+        st.toast(f"Welcome back, {first_name}!", icon="👋")
+
+
+def _register_in_process() -> dict:
+    """Standalone mode: Streamlit has already verified Google's ID token during
+    st.login(), so we can trust st.user and write to the user store directly."""
+    if not st.user.get("email_verified", False):
+        st.error("Your Google account email is not verified. Please use a verified Google account.")
+        st.stop()
+
+    from backend.users import get_or_create_user
+
+    user, is_new = get_or_create_user(
+        google_id=st.user["sub"],
+        email=st.user["email"],
+        name=st.user.get("name", ""),
+        picture=st.user.get("picture", ""),
+    )
+    return {**user, "is_new_user": is_new}
+
+
+def _register_via_api(backend_url: str) -> dict:
     response = requests.get(
         f"{backend_url}/auth/me",
         headers={"Authorization": f"Bearer {get_id_token()}"},
@@ -114,14 +147,7 @@ def register_user_with_backend(backend_url: str) -> None:
         st.session_state["session_expired"] = True
         st.rerun()
     response.raise_for_status()
-
-    profile = response.json()
-    st.session_state["profile"] = profile
-    first_name = (profile.get("name") or "there").split()[0]
-    if profile["is_new_user"]:
-        st.toast(f"Welcome, {first_name}! Your account has been created.", icon="🎉")
-    else:
-        st.toast(f"Welcome back, {first_name}!", icon="👋")
+    return response.json()
 
 
 def show_account_sidebar() -> None:

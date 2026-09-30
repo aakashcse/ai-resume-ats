@@ -100,6 +100,8 @@ The app opens at http://localhost:8501.
 ### 7. Try it
 Click **Continue with Google** and choose your account. The first time, your account is created automatically. Then upload `sample_data/sample_resume.pdf` and paste the text from `sample_data/sample_job_description.txt`.
 
+> **Tip, one-terminal option:** if you remove `BACKEND_URL` from `.env`, you can skip step 5. The Streamlit app then runs the analysis itself ("standalone mode"). This is also how the app runs on Streamlit Community Cloud.
+
 ### Run the tests
 ```bash
 pytest
@@ -212,6 +214,35 @@ When you deploy, add your deployed URL + `/oauth2callback` as another redirect U
   - **Fail closed.** If `GOOGLE_CLIENT_ID` is missing, the API refuses all requests (503) instead of letting everyone in, and any verification error returns 401.
   - **Expired sessions.** Google ID tokens last about 1 hour. After that, the app shows "session expired" and asks you to sign in again.
   - **Secrets stay out of git.** `.env`, `.streamlit/secrets.toml` and `*.db` are in `.gitignore`.
+
+## ☁️ Deploy (free) on Streamlit Community Cloud
+
+Streamlit Community Cloud runs a single Streamlit app, so the app runs in **standalone mode**: the frontend calls the same analysis code directly instead of calling the FastAPI backend. Google sign-in stays mandatory.
+
+1. **Sign in** to [share.streamlit.io](https://share.streamlit.io) with the GitHub account that owns this repo.
+2. Click **Create app → Deploy a public app from GitHub**, then choose:
+   - Repository: `aakashcse/ai-resume-ats`
+   - Branch: `main`
+   - Main file path: `frontend/app.py`
+   - App URL: pick a name, e.g. `aakash-resume-ats` → `https://aakash-resume-ats.streamlit.app`
+3. Open **Advanced settings**. Choose Python **3.11** or **3.12**, and paste this into **Secrets**. Do not add `BACKEND_URL`.
+   ```toml
+   [auth]
+   redirect_uri = "https://aakash-resume-ats.streamlit.app/oauth2callback"
+   cookie_secret = "a-long-random-string"
+   expose_tokens = "id"
+
+   [auth.google]
+   client_id = "your-client-id.apps.googleusercontent.com"
+   client_secret = "your-client-secret"
+   server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration"
+   ```
+4. In **Google Cloud Console → Credentials → your OAuth client**, add `https://aakash-resume-ats.streamlit.app/oauth2callback` to *Authorized redirect URIs*. Then, under **OAuth consent screen**, click **Publish app** so any Google account can sign in (in *Testing* mode, only your listed test users can).
+5. Click **Deploy**. The first build takes a few minutes.
+
+**Notes:**
+- Apps with no traffic for 12 hours go to sleep. Anyone who visits can wake the app with one click, and it takes about 30 seconds.
+- The SQLite user list is reset whenever the app restarts. Sign-in still works; everyone is simply treated as new.
 
 ## 🔌 API
 
