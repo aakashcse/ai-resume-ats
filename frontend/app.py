@@ -1,26 +1,39 @@
 """
 Streamlit frontend for the Resume ATS Scorer.
 
-It only handles the user interface. All the analysis happens in the FastAPI
-backend, which this app calls over HTTP (POST /analyze).
+It can run in two modes:
 
-Users must sign in with Google first (see auth_ui.py). The Google ID token is
-sent with every request, and the backend verifies it.
+1. API mode (BACKEND_URL is set, e.g. http://localhost:8000)
+   The analysis happens in the FastAPI backend, which this app calls over
+   HTTP. The Google ID token is sent with every request and the backend
+   verifies it.
 
-Run from the project root (with the backend already running):
+2. Standalone mode (BACKEND_URL is NOT set) - used on Streamlit Community Cloud
+   Community Cloud runs only one Streamlit app, so this app imports the
+   same backend analysis code and runs it directly. There is no public API
+   to protect in this mode; the Google sign-in gate below still applies.
+
+Users must sign in with Google first in both modes (see auth_ui.py).
+
+Run from the project root:
     streamlit run frontend/app.py
 """
 
 import os
+import sys
+from pathlib import Path
 
 import requests
 import streamlit as st
 from dotenv import load_dotenv
 
-import auth_ui
+# Make the project root importable so standalone mode can use the `backend` package.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import auth_ui  # noqa: E402
 
 load_dotenv()  # lets you set BACKEND_URL in the .env file
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+BACKEND_URL = os.getenv("BACKEND_URL", "").rstrip("/")  # empty = standalone mode
 
 CATEGORY_LABELS = {
     "sections": "Resume Sections",
@@ -35,7 +48,22 @@ class SessionExpired(Exception):
     """The backend rejected our Google token (expired or invalid)."""
 
 
+def analyze_in_process(resume_file, job_description: str) -> dict:
+    """Standalone mode: run the backend's analysis code directly (no HTTP)."""
+    from backend.services.analyzer import analyze_resume
+    from backend.services.text_extractor import FileError, extract_text
+
+    try:
+        resume_text = extract_text(resume_file.getvalue(), resume_file.name)
+    except FileError as exc:
+        raise RuntimeError(str(exc))
+    return analyze_resume(resume_text, job_description)
+
+
 def call_backend(resume_file, job_description: str) -> dict:
+    if not BACKEND_URL:
+        return analyze_in_process(resume_file, job_description)
+
     files = {"resume": (resume_file.name, resume_file.getvalue(), resume_file.type)}
     data = {"job_description": job_description}
     headers = {"Authorization": f"Bearer {auth_ui.get_id_token()}"}
