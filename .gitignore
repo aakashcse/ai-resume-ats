@@ -20,3 +20,7 @@ venv/
 
 # Local user database
 *.db
+
+# Google OAuth downloads (never commit these)
+client_secret*.json
+*.zip
