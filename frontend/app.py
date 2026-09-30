@@ -67,7 +67,7 @@ def call_backend(resume_file, job_description: str) -> dict:
     files = {"resume": (resume_file.name, resume_file.getvalue(), resume_file.type)}
     data = {"job_description": job_description}
     headers = {"Authorization": f"Bearer {auth_ui.get_id_token()}"}
-    response = requests.post(f"{BACKEND_URL}/analyze", files=files, data=data, headers=headers, timeout=60)
+    response = requests.post(f"{BACKEND_URL}/analyze", files=files, data=data, headers=headers, timeout=120)
 
     if response.status_code == 401:
         raise SessionExpired()
@@ -178,7 +178,12 @@ def main() -> None:
     try:
         auth_ui.register_user_with_backend(BACKEND_URL)
     except requests.RequestException:
-        st.error(f"Could not connect to the backend at {BACKEND_URL}. Is it running?")
+        st.error(
+            "The server is still starting up (free hosting sleeps when idle). "
+            "Please wait a few seconds and try again."
+        )
+        if st.button("Try again", type="primary"):
+            st.rerun()
         return
     auth_ui.show_account_sidebar()
 
@@ -202,8 +207,8 @@ def main() -> None:
         with st.spinner("Analyzing your resume..."):
             try:
                 st.session_state["result"] = call_backend(resume_file, job_description)
-            except requests.ConnectionError:
-                st.error(f"Could not connect to the backend at {BACKEND_URL}. Is it running?")
+            except (requests.ConnectionError, requests.Timeout):
+                st.error("The server is still starting up. Please wait a few seconds and click Analyze again.")
                 return
             except SessionExpired:
                 st.session_state["session_expired"] = True

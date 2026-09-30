@@ -138,11 +138,14 @@ def _register_in_process() -> dict:
 
 
 def _register_via_api(backend_url: str) -> dict:
-    response = requests.get(
-        f"{backend_url}/auth/me",
-        headers={"Authorization": f"Bearer {get_id_token()}"},
-        timeout=15,
-    )
+    # Free hosting (e.g. Render) puts an idle backend to sleep; waking it can
+    # take up to about a minute, so allow a long timeout here.
+    with st.spinner("Connecting to the server... the first visit can take up to a minute."):
+        response = requests.get(
+            f"{backend_url}/auth/me",
+            headers={"Authorization": f"Bearer {get_id_token()}"},
+            timeout=90,
+        )
     if response.status_code == 401:
         st.session_state["session_expired"] = True
         st.rerun()
