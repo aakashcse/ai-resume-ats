@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Virtual environments
+venv/
+.venv/
+
+# Secrets
+.env
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Streamlit secrets (Google OAuth credentials)
+.streamlit/secrets.toml
+
+# Local user database
+*.db
